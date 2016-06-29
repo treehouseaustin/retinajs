@@ -139,9 +139,47 @@ function dynamicSwapImage(image, src, rjs = 1) {
  * @return {undefined}
  */
 function manualSwapImage(image, src, hdsrc) {
-  if (environment > 1) {
-    setSourceIfAvailable(image, hdsrc);
+  try {
+    var sources = JSON.parse(hdsrc);
+    if (!sources || !sources.length) throw new Error('not an array');
+    sources.forEach(source => {
+      if (checkSourceForMatch(source)) setSourceIfAvailable(image, source.path);
+    });
+  } catch (err) {
+    if (environment > 1) {
+      setSourceIfAvailable(image, hdsrc);
+    }
   }
+}
+
+/**
+ * Checks the provided source for a match based on both the pixel density of the
+ * screen and the provided media query if specified.
+ *
+ * @param  {Object} source       The image source being evaluated.
+ * @param  {String} source.media (optional) A media query to check.
+ * @param  {String} source.cap   (optional) Screen density (defaults to 1).
+ *
+ * @return {Boolean}
+ */
+function checkSourceForMatch(source) {
+  var mediaQuery = source.media || false;
+  if (typeof matchMedia !== 'function') mediaQuery = false;
+
+  if (mediaQuery && mediaQuery[0] !== '(') {
+    mediaQuery = '(' + mediaQuery + ')';
+  }
+
+  source.cap = source.cap || 1;
+  if (environment >= source.cap && !mediaQuery) {
+    return true;
+  }
+
+  if (environment >= source.cap && matchMedia(mediaQuery).matches) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
